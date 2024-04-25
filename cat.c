@@ -1,12 +1,24 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 int main(int argc, char *argv[])
 {
     FILE *file;
-    char buffer[256];
+    char c;
 
+    int display_numbers = 0;
+    int display_numbers_nonblank = 0;
+    int display_end_of_line = 0;
+    int squeeze = 0;
+    int display_tabs = 0;
+
+    // check for parameters
+    if (argc < 2)
+    {
+        printf("Usage: %s [PARAMETER]... [FILE]...", argv[0]);
+        return 1;
+    }
+
+    // open file
     file = fopen(argv[1], "r");
 
     // check if file was succesefully opened
@@ -16,13 +28,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    while (fgets(buffer, sizeof(buffer), file) != NULL)
+    // output file character by character
+    while ((c = fgetc(file)) != EOF)
     {
-        printf("%s", buffer);
+        putchar(c);
     }
 
 
-
+    // close file
     fclose(file);
     
     return 0;
