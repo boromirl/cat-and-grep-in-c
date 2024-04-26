@@ -62,9 +62,12 @@ int main(int argc, char *argv[])
             return 1;
         }
 
+        char prev = 0;
         // output file character by character
         while ((c = fgetc(file)) != EOF)
         {
+            int isBlank = (c == prev == '\n');
+            
             if(display_end_of_line && c == '\n') putchar('$');
             if(display_tabs && c == '\t')
             {
