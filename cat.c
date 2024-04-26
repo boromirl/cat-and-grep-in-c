@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             {
                 if((prev == '\n' || prev == 0) && !isBlank)
                 {
-                    printf("%d\t", lineNumber);
+                    printf("     %d\t", lineNumber);
                     lineNumber++;
                 }
             }
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
             {
                 if(prev == '\n' || prev == 0) 
                 {
-                    printf("%d\t", lineNumber);
+                    printf("     %d\t", lineNumber);
                     lineNumber++;
                 }
             }
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             isPrevBlank = isBlank;
         }
 
-        printf("\n-b (%d)   -n (%d)   -E (%d)     -s (%d)     -T (%d)", display_numbers_nonblank, display_numbers, display_end_of_line, squeeze, display_tabs);
+        //printf("\n-b (%d)   -n (%d)   -E (%d)     -s (%d)     -T (%d)", display_numbers_nonblank, display_numbers, display_end_of_line, squeeze, display_tabs);
 
         prev = 0;
         // close file
