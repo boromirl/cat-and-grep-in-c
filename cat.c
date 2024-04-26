@@ -66,6 +66,12 @@ int main(int argc, char *argv[])
         while ((c = fgetc(file)) != EOF)
         {
             if(display_end_of_line && c == '\n') putchar('$');
+            if(display_tabs && c == '\t')
+            {
+                putchar('^');
+                putchar('I');
+                continue;
+            }
             putchar(c);
         }
 
