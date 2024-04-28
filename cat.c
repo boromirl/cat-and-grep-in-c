@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h>
+#include <getopt.h>
 
 int main(int argc, char *argv[])
 {
@@ -11,7 +11,14 @@ int main(int argc, char *argv[])
     int display_end_of_line = 0;
     int squeeze = 0;
     int display_tabs = 0;
-    int display_non_printed;
+    int display_non_printed = 0;
+
+    static struct option long_options[] = {
+        {"number", no_argument, 0, 'n'},
+        {"number-nonblank", no_argument, 0, 'b'},
+        {"squeeze-blank", no_argument, 0, 's'},
+        {0, 0, 0, 0}
+    };
 
     // check for parameters
     if (argc < 2)
@@ -20,52 +27,50 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // check for command line arguments
-    for (int i = 1; i < argc; i++)
+    // find command line arguments
+    int opt;
+    while ((opt = getopt_long(argc, argv, "benstvET", long_options, NULL)) != -1)
     {
-        if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--number-nonblank") == 0)
-        {
-            display_numbers_nonblank = 1;
-            continue;
+        switch(opt){
+            case 'E':
+                display_end_of_line = 1;
+                break;
+            case 'T':
+                display_tabs = 1;
+                break;
+            case 'b':
+                display_numbers_nonblank = 1;
+                break;
+            case 'e':
+                display_end_of_line = 1;
+                display_non_printed = 1;
+                break;
+            case 'n':
+                display_numbers = 1;
+                break;
+            case 's':
+                squeeze = 1;
+                break;
+            case 't':
+                display_tabs = 1;
+                display_non_printed = 1;
+                break;
+            case 'v':
+                display_non_printed = 1;
+                break;
+            case '?':
+                //printf("Invalid option: %c\n", optopt);
+                break;
         }
+    }
 
-        if ((strcmp(argv[i], "-E") == 0) || strcmp(argv[i], "-e") == 0)
-        {
-            display_end_of_line = 1;
-            continue;
-        }
-
-        if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number") == 0)
-        {
-            display_numbers = 1;
-            continue;
-        }
-
-        if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--squeeze-blank") == 0)
-        {
-            squeeze = 1;
-            continue;
-        }
-
-        if ((strcmp(argv[i], "-T") == 0) || strcmp(argv[i], "-t") == 0)
-        {
-            display_tabs = 1;
-            continue;
-        }
-
-        if ((strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "-e") == 0) || (strcmp(argv[i], "-t") == 0))
-        {
-            display_non_printed = 1;
-            continue;
-        }
-
-        // open file
+    for(int i = optind; i < argc; i++)
+    {
         file = fopen(argv[i], "r");
 
-        // check if file was succesefully opened
-        if (file == NULL)
+        if(file == NULL)
         {
-            printf("Error opening file\n");
+            printf("\ncat: %s: No such file or directory", argv[i]);
             return 1;
         }
 
@@ -86,7 +91,7 @@ int main(int argc, char *argv[])
             {
                 if((prev == '\n' || prev == 0) && !isBlank)
                 {
-                    printf("%d\t", lineNumber);
+                    printf("     %d\t", lineNumber);
                     lineNumber++;
                 }
             }
@@ -94,7 +99,7 @@ int main(int argc, char *argv[])
             {
                 if(prev == '\n' || prev == 0) 
                 {
-                    printf("%d\t", lineNumber);
+                    printf("     %d\t", lineNumber);
                     lineNumber++;
                 }
             }
@@ -116,14 +121,12 @@ int main(int argc, char *argv[])
             isPrevBlank = isBlank;
         }
 
-        printf("\n-b (%d)   -n (%d)   -E (%d)     -s (%d)     -T (%d)", display_numbers_nonblank, display_numbers, display_end_of_line, squeeze, display_tabs);
-
-        prev = 0;
-        // close file
         fclose(file);
     }
 
-    
+        
+
+    //printf("\n-b (%d)   -n (%d)   -E (%d)     -s (%d)     -T (%d)", display_numbers_nonblank, display_numbers, display_end_of_line, squeeze, display_tabs);
     
     return 0;
 }
