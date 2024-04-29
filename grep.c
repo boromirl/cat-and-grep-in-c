@@ -88,16 +88,22 @@ int main(int argc, char* argv[])
     for(int i = optind; i < argc; i++)
     {
         file = fopen(argv[i], "r");
+        
         if(file == NULL)
         {
             printf("\ngrep: %s: No such file or directory", argv[i]);
             return 1;
         }
 
+        char* filename = strdup(argv[i]);
+        if((strncmp(filename, "./", 2) == 0) || (strncmp(filename, ".\\", 2) == 0)){
+            memmove(filename, filename + 2, strlen(filename) - 1);
+        }
+
         char line[MAX_LINE_LEN];
         while(fgets(line, MAX_LINE_LEN, file) != NULL)
         {
-            printf("%s: %s", argv[i], line);
+            printf("%s: %s", filename, line);
         }
 
         fclose(file);
