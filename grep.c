@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
 
 #define MAX_PATTERNS 100
+#define MAX_LINE_LEN 1000
 
 int main(int argc, char* argv[])
 {
@@ -16,6 +18,12 @@ int main(int argc, char* argv[])
     int n_flag = 0;
     int h_flag = 0;
     int s_flag = 0;
+
+
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s -e pattern filename\n", argv[0]);
+        return 1;
+    }
 
     int opt;
     int pattern_num = 0;
@@ -51,6 +59,18 @@ int main(int argc, char* argv[])
                 s_flag = 1;
                 break;
             case 'f':
+                FILE *pattern_file = fopen(optarg, "r");
+                char pattern[MAX_LINE_LEN];
+                while(fgets(pattern, MAX_LINE_LEN, pattern_file) != NULL)
+                {
+                    size_t len = strlen(pattern);
+                    if (pattern[len - 1] == '\n'){
+                        pattern[len - 1] = '\0';
+                    }
+                    patterns[pattern_num] = strdup(pattern);
+                    pattern_num++;
+                }
+                fclose(pattern_file);
                 break;
             case '?':
                 //printf("Invalid option: %c\n", optopt);
@@ -61,8 +81,28 @@ int main(int argc, char* argv[])
     if(pattern_num == 0)
     {
         patterns[pattern_num] = argv[optind];
+        optind++;
         pattern_num++;
     }
+
+    for(int i = optind; i < argc; i++)
+    {
+        file = fopen(argv[i], "r");
+        if(file == NULL)
+        {
+            printf("\ngrep: %s: No such file or directory", argv[i]);
+            return 1;
+        }
+
+        char line[MAX_LINE_LEN];
+        while(fgets(line, MAX_LINE_LEN, file) != NULL)
+        {
+            printf("%s: %s", argv[i], line);
+        }
+
+        fclose(file);
+    }
+
 
     printf("Check for flags:\n -i(%d)   -v(%d)  -c(%d)  -l(%d)  -o(%d)  -n(%d)  -h(%d)  -s(%d)", i_flag, v_flag, c_flag, l_flag, o_flag, n_flag, h_flag, s_flag);
     printf("\nPatterns:");
