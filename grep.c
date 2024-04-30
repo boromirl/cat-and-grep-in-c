@@ -5,6 +5,11 @@
 #define MAX_PATTERNS 100
 #define MAX_LINE_LEN 1000
 
+int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count);
+void output_line(char* string, char* filename, int needFilename, int lineNum, int needLineNum);
+int is_line_match(char* line, char* ptterns[MAX_PATTERNS], int pattern_count);
+//void output_patterns_in_line(char* line )
+
 int main(int argc, char* argv[])
 {
     FILE *file;
@@ -19,6 +24,8 @@ int main(int argc, char* argv[])
     int h_flag = 0;
     int s_flag = 0;
 
+    int show_filename = 0;
+
 
     if (argc < 3) {
         fprintf(stderr, "Usage: %s -e pattern filename\n", argv[0]);
@@ -26,13 +33,13 @@ int main(int argc, char* argv[])
     }
 
     int opt;
-    int pattern_num = 0;
+    int pattern_count = 0;
     while((opt = getopt(argc, argv, "e:ivclonhsf:")) != -1)
     {
         switch(opt){
             case 'e':
-                patterns[pattern_num] = optarg;
-                pattern_num++;
+                patterns[pattern_count] = optarg;
+                pattern_count++;
                 break;
             case 'i':
                 i_flag = 1;
@@ -67,8 +74,8 @@ int main(int argc, char* argv[])
                     if (pattern[len - 1] == '\n'){
                         pattern[len - 1] = '\0';
                     }
-                    patterns[pattern_num] = strdup(pattern);
-                    pattern_num++;
+                    patterns[pattern_count] = strdup(pattern);
+                    pattern_count++;
                 }
                 fclose(pattern_file);
                 break;
@@ -78,43 +85,148 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(pattern_num == 0)
+    if(pattern_count == 0)
     {
-        patterns[pattern_num] = argv[optind];
+        patterns[pattern_count] = argv[optind];
         optind++;
-        pattern_num++;
+        pattern_count++;
     }
+
+    if(!h_flag && (argc - optind > 1)) show_filename = 1;
 
     for(int i = optind; i < argc; i++)
     {
-        file = fopen(argv[i], "r");
-        
-        if(file == NULL)
-        {
-            printf("\ngrep: %s: No such file or directory", argv[i]);
-            return 1;
-        }
-
         char* filename = strdup(argv[i]);
-        if((strncmp(filename, "./", 2) == 0) || (strncmp(filename, ".\\", 2) == 0)){
-            memmove(filename, filename + 2, strlen(filename) - 1);
+        //printf("-- %s --", filename);
+
+        int matches_count = count_matches(filename, patterns, pattern_count);
+        char matches_count_str[10];
+        sprintf(matches_count_str, "%d", matches_count);
+
+        //printf("== %d == %d == ", matches_count, pattern_count);
+
+        if(l_flag && matches_count > 0) printf("%s\n", filename);
+        else if(c_flag) output_line(matches_count_str, filename, show_filename, 0, 0);
+        else {
+            file = fopen(filename, "r");
+            if(file == NULL)
+            {
+                printf("\ngrep: %s: No such file or directory", filename);
+                return 1;
+            }
+
+            char line[MAX_LINE_LEN];
+            int line_num = 1;
+
+            while(fgets(line, MAX_LINE_LEN, file) != NULL)
+            {
+                int is_match = is_line_match(line, patterns, pattern_count);
+
+                if(is_match)
+                {
+                    if(o_flag) continue;
+                    else{
+                        output_line(line, filename, show_filename, line_num, n_flag);
+                    }
+                }
+
+                line_num++;
+            }
+
+            fclose(file);
+
         }
+        
+        /*
 
         char line[MAX_LINE_LEN];
+        int line_num = 1;
+        int matchlineCount = 0;
+        int isMatchFoundInFile = 0;
+        int isMatchFoundInLine = 0;
         while(fgets(line, MAX_LINE_LEN, file) != NULL)
         {
-            printf("%s: %s", filename, line);
+            for(int j = 0; j < pattern_count; j++)
+            {
+                if(strstr(line, patterns[j]) != NULL)
+                {
+                    isMatchFoundInFile = 1;
+                    isMatchFoundInLine = 1;
+                    if(o_flag)
+                    {
+                        if(show_filename) printf("%s:", filename);
+                        if(n_flag) printf("%d:", line_num);
+                        printf("%s", patterns[j]);
+                    }
+                }
+            }
+            if(isMatchFoundInLine) matchlineCount++;
+
+
+            line_num++;
         }
 
-        fclose(file);
+        if(isMatchFoundInFile && l_flag) printf("%s", filename);
+        else if(c_flag)
+        {
+            if(show_filename) printf("%s:", filename);
+            printf("%d", matchlineCount);
+        } 
+
+        fclose(file);*/
     }
 
 
-    printf("Check for flags:\n -i(%d)   -v(%d)  -c(%d)  -l(%d)  -o(%d)  -n(%d)  -h(%d)  -s(%d)", i_flag, v_flag, c_flag, l_flag, o_flag, n_flag, h_flag, s_flag);
+    /*printf("\nCheck for flags:\n -i(%d)   -v(%d)  -c(%d)  -l(%d)  -o(%d)  -n(%d)  -h(%d)  -s(%d)", i_flag, v_flag, c_flag, l_flag, o_flag, n_flag, h_flag, s_flag);
     printf("\nPatterns:");
-    for (int i = 0; i < pattern_num; i++)
+    for (int i = 0; i < pattern_count; i++)
     {
         printf("\n[%d]: %s", i, patterns[i]);
-    }
+    }*/
     return 0;
+}
+
+
+int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count)
+{
+    FILE *file = fopen(filename, "r");
+
+    char line[MAX_LINE_LEN];
+    int matches_count = 0;
+
+    while(fgets(line, MAX_LINE_LEN, file) != NULL)
+    {
+        int isMatchFoundInLine = 0;
+
+        for(int i = 0; i < pattern_count; i++)
+        {
+            if(strstr(line, patterns[i]) != NULL) isMatchFoundInLine = 1;
+        }
+        if(isMatchFoundInLine) matches_count++;
+    }
+
+    fclose(file);
+    return matches_count;
+}
+
+void output_line(char* string, char* filename, int needFilename, int lineNum, int needLineNum)
+{
+    if(needFilename) printf("%s:", filename);
+    if(needLineNum) printf("%d:", lineNum);
+    printf("%s", string);
+    if(string[strlen(string) - 1] != '\n') printf("\n");
+}
+
+int is_line_match(char* line, char* patterns[MAX_PATTERNS], int pattern_count)
+{
+    int patternFound = 0;
+    for (int i = 0; i < pattern_count; i++)
+    {
+        if(strstr(line, patterns[i]) != NULL)
+        {
+            patternFound = 1;
+            break;
+        }
+    }
+    return patternFound;
 }
