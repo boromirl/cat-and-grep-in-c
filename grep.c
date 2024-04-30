@@ -7,7 +7,7 @@
 #define MAX_PATTERNS 100
 #define MAX_LINE_LEN 1000
 
-int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count, int ignore_case);
+int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count, int ignore_case, int inverted);
 void output_line(char* string, char* filename, int needFilename, int lineNum, int needLineNum);
 int is_line_match(char* line, char* patterns[MAX_PATTERNS], int pattern_count, int ignore_case);
 void output_patterns_in_line(char* line, char* patterns[MAX_PATTERNS], int pattern_count, char* filename, int needFilename, int lineNum, int needLineNum, int ignore_case);
@@ -71,6 +71,11 @@ int main(int argc, char* argv[])
                 break;
             case 'f':
                 FILE *pattern_file = fopen(optarg, "r");
+                if(pattern_file == NULL)
+                {
+                    if(!s_flag)fprintf(stderr, "grep: %s: No such file or directory\n", optarg);
+                    return 1;
+                }
                 char pattern[MAX_LINE_LEN];
                 while(fgets(pattern, MAX_LINE_LEN, pattern_file) != NULL)
                 {
@@ -103,7 +108,7 @@ int main(int argc, char* argv[])
         char* filename = strdup(argv[i]);
         //printf("-- %s --", filename);
 
-        int matches_count = count_matches(filename, patterns, pattern_count, i_flag);
+        int matches_count = count_matches(filename, patterns, pattern_count, i_flag, v_flag);
         char matches_count_str[10];
         sprintf(matches_count_str, "%d", matches_count);
 
@@ -115,7 +120,7 @@ int main(int argc, char* argv[])
             file = fopen(filename, "r");
             if(file == NULL)
             {
-                printf("\ngrep: %s: No such file or directory", filename);
+                if(!s_flag)printf("\ngrep: %s: No such file or directory", filename);
                 return 1;
             }
 
@@ -125,6 +130,11 @@ int main(int argc, char* argv[])
             while(fgets(line, MAX_LINE_LEN, file) != NULL)
             {
                 int is_match = is_line_match(line, patterns, pattern_count, i_flag);
+                if(v_flag)
+                {
+                    if(is_match) is_match = 0;
+                    else is_match = 1;
+                }
 
                 if(is_match)
                 {
@@ -157,7 +167,7 @@ int main(int argc, char* argv[])
 }
 
 
-int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count, int ignore_case)
+int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count, int ignore_case, int inverted)
 {
     FILE *file = fopen(filename, "r");
 
@@ -166,13 +176,10 @@ int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_coun
 
     while(fgets(line, MAX_LINE_LEN, file) != NULL)
     {
-        int isMatchFoundInLine = 0;
+        int isMatchFoundInLine = is_line_match(line, patterns,pattern_count, ignore_case);
 
-        for(int i = 0; i < pattern_count; i++)
-        {
-            if(find_in_line(line, patterns[i], ignore_case) != NULL) isMatchFoundInLine = 1;
-        }
-        if(isMatchFoundInLine) matches_count++;
+        if(isMatchFoundInLine && !inverted) matches_count++;
+        if(!isMatchFoundInLine && inverted) matches_count++;
     }
 
     fclose(file);
