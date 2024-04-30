@@ -7,8 +7,8 @@
 
 int count_matches(char* filename, char* patterns[MAX_PATTERNS], int pattern_count);
 void output_line(char* string, char* filename, int needFilename, int lineNum, int needLineNum);
-int is_line_match(char* line, char* ptterns[MAX_PATTERNS], int pattern_count);
-//void output_patterns_in_line(char* line )
+int is_line_match(char* line, char* patterns[MAX_PATTERNS], int pattern_count);
+void output_patterns_in_line(char* line, char* patterns[MAX_PATTERNS], int pattern_count, char* filename, int needFilename, int lineNum, int needLineNum);
 
 int main(int argc, char* argv[])
 {
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 
                 if(is_match)
                 {
-                    if(o_flag) continue;
+                    if(o_flag) output_patterns_in_line(line, patterns, pattern_count, filename, show_filename, line_num, n_flag);
                     else{
                         output_line(line, filename, show_filename, line_num, n_flag);
                     }
@@ -137,43 +137,6 @@ int main(int argc, char* argv[])
 
         }
         
-        /*
-
-        char line[MAX_LINE_LEN];
-        int line_num = 1;
-        int matchlineCount = 0;
-        int isMatchFoundInFile = 0;
-        int isMatchFoundInLine = 0;
-        while(fgets(line, MAX_LINE_LEN, file) != NULL)
-        {
-            for(int j = 0; j < pattern_count; j++)
-            {
-                if(strstr(line, patterns[j]) != NULL)
-                {
-                    isMatchFoundInFile = 1;
-                    isMatchFoundInLine = 1;
-                    if(o_flag)
-                    {
-                        if(show_filename) printf("%s:", filename);
-                        if(n_flag) printf("%d:", line_num);
-                        printf("%s", patterns[j]);
-                    }
-                }
-            }
-            if(isMatchFoundInLine) matchlineCount++;
-
-
-            line_num++;
-        }
-
-        if(isMatchFoundInFile && l_flag) printf("%s", filename);
-        else if(c_flag)
-        {
-            if(show_filename) printf("%s:", filename);
-            printf("%d", matchlineCount);
-        } 
-
-        fclose(file);*/
     }
 
 
@@ -230,3 +193,45 @@ int is_line_match(char* line, char* patterns[MAX_PATTERNS], int pattern_count)
     }
     return patternFound;
 }
+
+void output_patterns_in_line(char* line, char* patterns[MAX_PATTERNS], int pattern_count, char* filename, int needFilename, int lineNum, int needLineNum)
+{
+    int min_str_ind = -1;
+    int pattern_ind = -1;
+    int string_start = 0;
+    char cut_line[MAX_LINE_LEN];
+    do
+    {
+        min_str_ind = -1;
+        //printf(" -1-%d-- ", min_str_ind);
+        pattern_ind = -1;
+        
+        strcpy(cut_line, line + string_start);
+
+        for(int i = 0; i < pattern_count; i++)
+        {
+            char* result = strstr(cut_line, patterns[i]);
+
+            if(result != NULL)
+            {
+                int str_ind = result - line;
+                if(str_ind < min_str_ind || str_ind == -1)
+                {
+                    min_str_ind = str_ind;
+                    pattern_ind = i;
+                }
+            }
+
+
+        }
+
+        if(min_str_ind != -1)
+        {
+            output_line(patterns[pattern_ind], filename, needFilename, lineNum, needLineNum);
+            string_start = min_str_ind + strlen(patterns[pattern_ind]);
+        }
+
+        //printf(" -2-%d-- ", min_str_ind);
+    } while(min_str_ind != -1); 
+}
+
