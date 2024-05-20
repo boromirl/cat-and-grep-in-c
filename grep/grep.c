@@ -4,6 +4,7 @@
 
 #include <ctype.h>
 #include <getopt.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +19,7 @@ int is_line_match(char* line, char** patterns, int numPatterns,
 void output_patterns_in_line(char* line, char** patterns, int numPatterns,
                              char* filename, int needFilename, int lineNum,
                              int needLineNum, int ignore_case);
-int find_in_line(char* line, char* pattern, int ignore_case);
+int find_in_line(char* line, int offset, char* pattern, int ignore_case);
 
 int main(int argc, char* argv[]) {
   FILE* file;
@@ -239,31 +240,54 @@ void output_line(char* string, char* filename, int needFilename, int lineNum,
 
 int is_line_match(char* line, char** patterns, int numPatterns,
                   int ignore_case) {
-  int patternFound = 0;
+  int is_match = 0;
+
+  regex_t reg[numPatterns];
+  int regexFlags = REG_EXTENDED;
+
+  if (ignore_case) {
+    regexFlags |= REG_ICASE;
+  }
+
   for (int i = 0; i < numPatterns; i++) {
-    if (find_in_line(line, patterns[i], ignore_case) != -1) {
-      patternFound = 1;
+    if (regcomp(&reg[i], patterns[i], regexFlags) != 0) {
+      fprintf(stderr, "Failed to compile regex\n");
+      return 0;
+    }
+  }
+
+  for (int i = 0; i < numPatterns; i++) {
+    regmatch_t match;
+    if (regexec(&reg[i], line, 1, &match, 0) == 0) {
+      is_match = 1;
       break;
     }
   }
-  return patternFound;
+
+  for (int i = 0; i < numPatterns; i++) {
+    regfree(&reg[i]);
+  }
+
+  return is_match;
 }
 
 void output_patterns_in_line(char* line, char** patterns, int numPatterns,
                              char* filename, int needFilename, int lineNum,
                              int needLineNum, int ignore_case) {
   int first_pattern_ind;
-  int line_len = strlen(line);
+  int offset = 0;
   // char* lineCopy = strdup(line);
   do {
     // printf("--%s--", line);
     first_pattern_ind = -1;
     int first_pattern_len = 0;
     for (int i = 0; i < numPatterns; i++) {
-      int pattern_ind = find_in_line(line, patterns[i], ignore_case);
-      if (pattern_ind > -1 &&
-          (pattern_ind < first_pattern_ind || first_pattern_ind == -1)) {
-        first_pattern_ind = pattern_ind;
+      int pattern_ind = find_in_line(line, offset, patterns[i], ignore_case);
+      // printf("-- %d -- %s -- %d --", pattern_ind, patterns[i],
+      // first_pattern_ind);
+      if (pattern_ind > -1 && (pattern_ind + offset < first_pattern_ind ||
+                               first_pattern_ind == -1)) {
+        first_pattern_ind = pattern_ind + offset;
         first_pattern_len = strlen(patterns[i]);
       }
     }
@@ -274,42 +298,37 @@ void output_patterns_in_line(char* line, char** patterns, int numPatterns,
           strndup(line + first_pattern_ind, first_pattern_len);
       // first_pattern[first_pattern_len] = '\0';
 
-      line_len = line_len - first_pattern_ind - first_pattern_len;
+      offset = first_pattern_ind + first_pattern_len;
 
       output_line(first_pattern, filename, needFilename, lineNum, needLineNum);
       // line = strndup(line + first_pattern_len + first_pattern_ind, line_len);
-      memmove(line, line + first_pattern_len + first_pattern_ind, line_len);
-      line[line_len] = '\0';
-
       free(first_pattern);
     }
   } while (first_pattern_ind != -1);
   // free(line);
 }
 
-int find_in_line(char* line, char* pattern, int ignore_case) {
-  int line_len = strlen(line);
-  int pattern_len = strlen(pattern);
+int find_in_line(char* line, int offset, char* pattern, int ignore_case) {
+  int pattern_ind = -1;
+  regex_t regex;
+  int regexFlags = REG_EXTENDED;
 
-  int result = -1;
-
-  for (int i = 0; i <= line_len - pattern_len; i++) {
-    int match = 1;
-    for (int j = 0; j < pattern_len; j++) {
-      char line_char = ignore_case ? tolower(line[i + j]) : line[i + j];
-      char pattern_char = ignore_case ? tolower(pattern[j]) : pattern[j];
-
-      if (line_char != pattern_char) {
-        match = 0;
-        break;
-      }
-    }
-
-    if (match) {
-      result = i;
-      break;
-    }
+  if (ignore_case) {
+    regexFlags |= REG_ICASE;
   }
 
-  return result;
+  if (regcomp(&regex, pattern, regexFlags) != 0) {
+    fprintf(stderr, "Failed to compile regex\n");
+    return -1;
+  }
+
+  regmatch_t match;
+  int value = regexec(&regex, line + offset, 1, &match, 0);
+
+  if (value == 0) {
+    pattern_ind = match.rm_so;
+  }
+
+  regfree(&regex);
+  return pattern_ind;
 }

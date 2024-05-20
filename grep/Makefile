@@ -3,9 +3,9 @@
 CC = gcc
 CFLAGS = -pedantic -Wall -Werror -Wextra -std=c11
 
-TARGET1 = grep
+TARGET1 = s21_grep
 EXECUTABLE1 = s21_grep
-SRCS1 = grep.c
+SRCS1 = s21_grep.c
 
 all: $(TARGET1)
 
